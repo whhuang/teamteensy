@@ -20,7 +20,7 @@ const int m2_1 = 23;
 const int m2_2 = 22;
 const int ledPin = 13;
 Encoder leftEnc(17, 16);
-Encoder rightEnc(33, 34);
+Encoder rightEnc(0, 1);
 
 void setup() {
   Serial.begin(9600);

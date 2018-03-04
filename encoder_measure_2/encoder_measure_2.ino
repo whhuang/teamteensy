@@ -1,9 +1,9 @@
 #include <Encoder.h>
 //#include <Wire.h>
-////#include <LIS3MDL.h> magnetometer
-//#include <LSM6.h>
+//#include <LIS3MDL.h> magnetometer
+#include <LSM6.h>
 Encoder leftEnc(17, 16);
-Encoder rightEnc(33, 34);
+Encoder rightEnc(0, 1);
 
 void setup() {
   Serial.begin(9600);
