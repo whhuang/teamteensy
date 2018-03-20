@@ -41,7 +41,7 @@ void setup() {
 
 void calibrateGyro() {
   int interval = 20;
-  int duration = 12000;
+  int duration = 1000;
   int calib;
   for (int i = 0; i < duration/interval; i++) {
     imu.read();

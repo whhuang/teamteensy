@@ -20,7 +20,7 @@ void setup() {
     delay(1);
   }
   
-  Serial.println("Adafruit VL6180x test!");
+  Serial.println("Adafruit VL6180x");
   if (! vl.begin(WIRE_0)) {
     Serial.println("Failed to find sensor");
     while (1);
