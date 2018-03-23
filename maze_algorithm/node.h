@@ -23,3 +23,6 @@ void setX(struct Node* oNode, int xCoord);
 
 /* Sets the Y coordinate of this Node */
 void setY(struct Node* oNode, int yCoord);
+
+/* Sets whether this node has been visited */
+void setVisisted(struct Node* oNode)
