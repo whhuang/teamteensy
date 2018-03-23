@@ -41,3 +41,24 @@ void rightMotor(int pwr) {
     analogWrite(m2_1, 0);
   }
 }
+
+void updateLocation(int beforeCoordinate, int travel) { // apply a scale factor after measuring the maze size
+  switch (facing) {
+    case NORTH:
+      yLocation = beforeCoordinate - travel/MAZE_SQUARE_SIZE;
+      break;
+    case SOUTH:
+      yLocation = beforeCoordinate + travel/MAZE_SQUARE_SIZE;
+      break;
+    case EAST:
+      xLocation = beforeCoordinate + travel/MAZE_SQUARE_SIZE;
+      break;
+    case WEST:
+      xLocation = beforeCoordinate - travel/MAZE_SQUARE_SIZE;
+      break;
+    case TURNING:
+      Serial.println("Error: detected driving straight while turning");
+      break;
+  }
+}
+

@@ -4,7 +4,7 @@
 
 Adafruit_VL6180X vl = Adafruit_VL6180X();
 Adafruit_VL6180X v2 = Adafruit_VL6180X();
-//Adafruit_VL6180X v3 = Adafruit_VL6180X();
+Adafruit_VL6180X v3 = Adafruit_VL6180X();
 
 LSM6 imu;
 int calibrate_offset;
@@ -21,6 +21,11 @@ void setup() {
   }
   
   Serial.println("Adafruit VL6180x");
+  if (! v3.begin(WIRE_2)) {
+    Serial.println("Failed to find sensor");
+    while (1);
+  }
+  Serial.println("v3");
   if (! vl.begin(WIRE_0)) {
     Serial.println("Failed to find sensor");
     while (1);
@@ -30,18 +35,20 @@ void setup() {
     Serial.println("Failed to find sensor");
     while (1);
   }
-  /*if (! v3.begin(WIRE_2)) {
-    Serial.println("Failed to find sensor");
-    while (1);
-  }*/
-  Serial.println("distance sensors working");
-  
+  Serial.println("v2");
   if (!imu.init())
   {
     Serial.println("Failed to detect and initialize IMU!");
     while (1);
   }
   imu.enableDefault();
+  Serial.println("IMU found");
+
+  
+  
+  
+  Serial.println("distance sensors working");
+  
   
   Serial.println("all sensors found");
 
@@ -70,15 +77,15 @@ void loop() {
 
   //Serial.print("Lux: "); Serial.print(lux);
   
-  uint8_t range = vl.readRange();
+  uint8_t range = vl.readRange(); // you can use int too!
   uint8_t status = vl.readRangeStatus();
   uint8_t range2 = v2.readRange();
   uint8_t status2 = v2.readRangeStatus();
-  //uint8_t range3 = v3.readRange();
-  //uint8_t status3 = v3.readRangeStatus();
+  uint8_t range3 = v3.readRange();
+  uint8_t status3 = v3.readRangeStatus();
 
   imu.read();
-  /*
+  
   if (status == VL6180X_ERROR_NONE) {
     Serial.print("  Range1: "); Serial.print(range);
   }
@@ -90,13 +97,13 @@ void loop() {
   }
   else {
     Serial.print("  Range2: far");
-  }*/
-  /*if (status3 == VL6180X_ERROR_NONE) {
+  }
+  if (status3 == VL6180X_ERROR_NONE) {
     Serial.print("  Range3: "); Serial.println(range3);
   }
   else {
     Serial.println("  Range3: far");
-  }*/
+  }
   //Serial.print("Gyro Z: ");
 
   if (Serial.available() > 0) {

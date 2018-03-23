@@ -23,4 +23,14 @@ void readIMU(unsigned long dt) {
   else {
     angularVelocity = 0;
   }
+
+  // reading the distance sensor must be done here because they're both on the same SDA port
+  // replace this code with distanceToSensor(v1);
+  uint8_t range = v1.readRange();
+  uint8_t status = v1.readRangeStatus();
+
+  if (status == VL6180X_ERROR_NONE)
+    v1Range = range;
+  else
+    v1Range = 404;
 }
