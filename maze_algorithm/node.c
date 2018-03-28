@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "node.h"
+#include "graph.h"
 
 struct Node {
   int x;
@@ -9,6 +10,7 @@ struct Node {
   struct Node* south;
   struct Node* west;
   struct Node* east;
+  int search_visit;
 };
 
 struct Node* Node_new(void) {
@@ -21,6 +23,8 @@ struct Node* Node_new(void) {
   node->south = NULL;
   node->west = NULL;
   node->east = NULL;
+  oNode->search_visit = 0;
+
   return node;
 }
 
@@ -44,14 +48,14 @@ void setEast(struct Node* oNode, struct Node* oEastNode) {
   oNode->east = oEastNode;
 }
 
-void setX(struct Node* oNode, int xCoord) {
+void setXandY(struct Node* oNode, int xCoord, int yCoord, struct Graph* oGraph) {
   oNode->x = xCoord;
-}
-
-void setY(struct Node* oNode, int yCoord) {
   oNode->y = yCoord;
+
+  // Push these valid nodes to a stack
+  Graph_addNode(oNode);
 }
 
-void setVisisted(struct Node* oNode) {
+void setVisited(struct Node* oNode) {
   oNode->visited = 1;
 }

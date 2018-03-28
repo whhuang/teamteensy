@@ -1,3 +1,5 @@
+#include "graph.h"
+
 struct Node;
 
 /* creates a new Node struct */
@@ -18,11 +20,8 @@ void setWest(struct Node* oNode, struct Node* oWestNode);
 /* Sets the node east of this node to the pointer given */
 void setEast(struct Node* oNode, struct Node* oEastNode);
 
-/* Sets the x coordinate of this Node */
-void setX(struct Node* oNode, int xCoord);
-
-/* Sets the Y coordinate of this Node */
-void setY(struct Node* oNode, int yCoord);
+/* Sets the X and Y coordinate of this Node */
+void setXandY(struct Node* oNode, int xCoord, int yCoord, struct Graph* oGraph);
 
 /* Sets whether this node has been visited */
-void setVisisted(struct Node* oNode)
+void setVisited(struct Node* oNode)
