@@ -253,6 +253,17 @@ void goStraightUntilWall() {
     
 }
 
+void driveUntilNode(Node node/*not sure how to import the node*/) {
+  //drive forward in a straight line until reaching the specified node. do so by looking at the coordinates and then confirming that the robot is centered at the destination node because relying purely on coordinates wouldn't work
+}
+
+void roudCoordinates () {
+  //round xLocation and yLocation to nearest integer
+}
+
+boolean atTheCenter() {
+  //returns true if the robot is at one of the center coordinates, which I think are (7,7),(7,8),(8,7),and (8,8)
+}
 void makeTurn(int dist) {
   //ISSUE: sometimes it doesn't quite complete the turn. it gets close and can't finish
   // positive is CCW
