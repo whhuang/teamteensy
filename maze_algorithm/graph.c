@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include "node.h"
 #include "graph.h"
+#include "stack.h"
 
 struct Graph {
   struct Node* start;

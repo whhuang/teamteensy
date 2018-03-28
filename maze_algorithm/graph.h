@@ -1,4 +1,5 @@
 #include "node.h"
+#include "stack.h"
 
 struct Graph;
 
