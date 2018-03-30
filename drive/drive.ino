@@ -3,7 +3,8 @@
 #include <i2c_t3.h>
 #include "Adafruit_VL6180X_upgrade.h"
 #include <LSM6_upgrade.h>
-#include "node.h"
+#include <math.h>
+#include <stdlib.h>
 //constants
 const int L = 0;
 const int R = 1;
@@ -254,50 +255,28 @@ void goStraightUntilWall() {
     
 }
 
-void driveUntilNode(Node node) {
-  //drive forward in a straight line until reaching the specified node. do so by looking at the coordinates and then confirming that the robot is centered at the destination node because relying purely on coordinates wouldn't work
-  //are Node.x and Node.y public?
-  roundCoordinates();
-  int distance;
-  // confirm that you're at the same x or y coordinate of the destination node
-  if (xLocation == node.x) {
-    
-    distance = node.y - yLocation;
-    if (distance > 0) {
-      turnTo(SOUTH);
-    }
-    else if (distance < 0) {
-      turnTo(NORTH);
-      distance = abs(distance);
-    }
-    
-  }
-  else if (yLocation == node.y) {
-    distance = node.x - xLocation;
-    if (distance > 0) {
-      turnTo(EAST);
-    }
-    else if (distance < 0) {
-      turnTo(WEST);
-      distance = abs(distance);
-    }
-  }
-  else {
-    // then you screwed up
-    Serial.println("invalid driveUntilNode call. destination not in line with robot");
-  }
-  distance = (int) (distance * MAZE_SQUARE_SIZE);
-  goStraightWithoutStopping(distance - (int) (2*MAZE_SQUARE_SIZE / 3)); // go almost the full distance then look for walls
-  //then examine the left, right, and/or front walls if they can identify the node
-}
+//void driveUntilNode(Node node/*not sure how to import the node*/) {
+  /*drive forward in a straight line until reaching the specified node. do so by looking at the coordinates and then confirming that the robot is 
+    centered at the destination node because relying purely on coordinates wouldn't work */
 
-void roudCoordinates () {
+
+//}
+
+void roundCoordinates () {
   //round xLocation and yLocation to nearest integer
+  xLocation = round(xLocation);
+  yLocation = round(yLocation);
 }
 
 boolean atTheCenter() {
   //returns true if the robot is at one of the center coordinates, which I think are (7,7),(7,8),(8,7),and (8,8)
+  if (xLocation == 7 && yLocation == 7) return 1;
+  else if (xLocation == 7 && yLocation == 8) return 1;
+  else if (xLocation == 8 && yLocation == 7) return 1;
+  else if (xLocation == 8 && yLocation == 8) return 1;
+  else return 0;
 }
+
 void makeTurn(int dist) {
   //ISSUE: sometimes it doesn't quite complete the turn. it gets close and can't finish
   // positive is CCW
@@ -335,7 +314,7 @@ void makeTurn(int dist) {
     if (nearZero(error, leftTurn / 60) && nearZero(angularVelocity, 1000)){ // about 1.5 degree tolerance
       leftMotor(0);
       rightMotor(0);
-      facing = (((wasFacing + dist/rightTurn) % 4)+ 4) % 4;
+      facing = (((wasFacing + dist/rightTurn) % 4)+ 4) % 4; // why the extra +4 %4? 
       return;
     }
     threads.delay(25);
@@ -369,6 +348,27 @@ void turn (int amount) {
     Serial.print(facing);Serial.print(xLocation);Serial.println(yLocation);
   }*/
   threads.wait(turning, 0); // time limit?
+}
+
+void turnTo(int newDir) {
+  int oldDir = facing;
+  if (newDir == oldDir) return;
+  
+  // numTurns1 and numTurns2 incorporate the correct signs (ex. for N->E, numTurns1 = -1, numTurns2 = 3)
+  int numTurns1 = oldDir - newDir;
+  int numTurns2 = -(numTurns1/abs(numTurns1))*(4 - abs(numTurns1));
+  
+  if (abs(numTurns1) <= abs(numTurns2))
+  {
+    // sorry, needed to include these cases since |leftTurn| != |rightTurn|
+    if (numTurns1 < 0)      turn(abs(numTurns1)*rightTurn);
+    else if (numTurns1 > 0) turn(numTurns1*leftTurn);
+  }
+  else if (abs(numTurns2) < abs(numTurns1))
+  {
+    if (numTurns2 < 0)      turn(abs(numTurns2)*rightTurn);
+    else if (numTurns2 > 0) turn(numTurns2*leftTurn);
+  }
 }
 
 void loop() {
