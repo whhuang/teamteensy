@@ -3,6 +3,7 @@
 #include <i2c_t3.h>
 #include "Adafruit_VL6180X_upgrade.h"
 #include <LSM6_upgrade.h>
+#include "node.h"
 //constants
 const int L = 0;
 const int R = 1;
@@ -253,8 +254,41 @@ void goStraightUntilWall() {
     
 }
 
-void driveUntilNode(Node node/*not sure how to import the node*/) {
+void driveUntilNode(Node node) {
   //drive forward in a straight line until reaching the specified node. do so by looking at the coordinates and then confirming that the robot is centered at the destination node because relying purely on coordinates wouldn't work
+  //are Node.x and Node.y public?
+  roundCoordinates();
+  int distance;
+  // confirm that you're at the same x or y coordinate of the destination node
+  if (xLocation == node.x) {
+    
+    distance = node.y - yLocation;
+    if (distance > 0) {
+      turnTo(SOUTH);
+    }
+    else if (distance < 0) {
+      turnTo(NORTH);
+      distance = abs(distance);
+    }
+    
+  }
+  else if (yLocation == node.y) {
+    distance = node.x - xLocation;
+    if (distance > 0) {
+      turnTo(EAST);
+    }
+    else if (distance < 0) {
+      turnTo(WEST);
+      distance = abs(distance);
+    }
+  }
+  else {
+    // then you screwed up
+    Serial.println("invalid driveUntilNode call. destination not in line with robot");
+  }
+  distance = (int) (distance * MAZE_SQUARE_SIZE);
+  goStraightWithoutStopping(distance - (int) (2*MAZE_SQUARE_SIZE / 3)); // go almost the full distance then look for walls
+  //then examine the left, right, and/or front walls if they can identify the node
 }
 
 void roudCoordinates () {
