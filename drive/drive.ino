@@ -149,6 +149,161 @@ void goStraight (int dist) {
   }
 }
 
+
+//this is not done yet. use drive straight for now
+void goStraightToNode(int dist, Node node) { // I know it's bad to directly copy code from another function and then change it a little to make it work but I'm rushing here.
+  // int dist is the number of encoder ticks, not the number of squares.
+  Serial.println("go distance without stopping");
+  if (facing == NORTH && node.north = NULL || facing == EAST && node.east = NULL || facing == SOUTH && node.south = NULL || facing == WEST && node.west = NULL) {
+    // if the destination node has a wall at the end of it, just use goStraightUntilWall();
+    goStraightUntilWall();
+    return;
+  }
+  boolean goalLeftWall;
+  boolean goalRightWall;
+
+  if (facing==NORTH) {
+    goalLeftWall = node.west == NULL;
+    goalRightWall = node.east == NULL;
+  }
+  else if (facing==EAST) {
+    goalLeftWall = node.north == NULL;
+    goalRightWall = node.south == NULL;    
+  }
+  else if (facing==SOUTH) {
+    goalLeftWall = node.east == NULL;
+    goalRightWall = node.west == NULL;
+  }
+  else if (facing==WEST) {
+    goalLeftWall = node.south == NULL;
+    goalRightWall = node.north == NULL;
+  }
+  else {
+    // the robot is turning or something
+    Serial.println("Error: tried goStraightToNode() while turning");
+    return;
+  }
+  const float twist_kP = 1;
+  const float wall_wall_kP = 10;
+  const float wall_wall_kD = 30;
+  int tempCoordinate;
+  if (facing == NORTH || facing == SOUTH) {
+    tempCoordinate = yLocation;
+  }
+  else if (facing == EAST || facing == WEST) {
+    tempCoordinate = xLocation;
+  }
+  leftEnc.write(0);
+  rightEnc.write(0);
+  int lastMode = NONE;
+  int lastError = 0;
+  int distanceError = dist;
+  boolean didntReachNodeYet = true;
+  int nodeIdentification = 0
+  if (facing == NORTH) {
+    Node* prevNode = node.south; // is this valid? idk how pointers work.
+    //assuming NORTH is in the negative y direction...
+    if (prevNode != NULL && prevNode.y == node.y + 1) {
+      if ((node.west == NULL) != (prevNode.west == NULL) {
+        // the left wall changes so we can use that to find the new node.
+        
+      }
+    }
+  }
+  while (didntReachNodeYet) {
+    /* If there is a wall on the left and right, center the robot between them.
+     * If there is just a wall on the left, put the robot 50mm from that wall.
+     * If just on the right, 50mm from that wall.
+     * Else, use encoders to keep tracking straight.
+     */
+    if (nodeIdentification == 0) {// no means of distinguishing the destination node from the previous square
+      didntReachNodeYet = distanceError > 0;
+    }
+    int leftWallDist = wallLeft();
+    int rightWallDist = wallRight();
+    int leftWallTarget = 50; //desired distance from each wall, I dind't measure so it's probably off. Keep in mind the sensors themselved might be inaccurate although precise
+    int rightWallTarget = 50;
+    int leftPower = 0;
+    int rightPower = 0;
+    
+    if (leftWallDist < 100) {
+      if (rightWallDist < 100) {
+        //2 walls
+        int wallError = leftWallDist - rightWallDist;
+        int d = 0;
+        if (lastMode == BOTH) {
+          d = wallError - lastError;
+        }
+        leftPower = 255 - d*wall_wall_kD - wallError*wall_wall_kP;
+        rightPower = 255 + d*wall_wall_kD + wallError*wall_wall_kP;
+        //leftPower = 255 - maximum(wallError*wall_wall_kP, 100);
+        //rightPower = 255 + maximum(wallError*wall_wall_kP, 100);
+        lastMode = BOTH;
+        lastError = wallError;
+      }
+      else {
+        // just left wall
+        int wallError = leftWallDist - leftWallTarget;
+        int d = 0;
+        if (lastMode == L) {
+          //Serial.print("calculating d");
+          d = wallError - lastError;
+        }
+        //leftPower = 255 - maximum(d*wall_wall_kD, 50) - maximum(wallError*wall_wall_kP, 80);
+        //rightPower = 255 + maximum(d*wall_wall_kD, 50) + maximum(wallError*wall_wall_kP, 80);
+        leftPower = 255 - maximum(wallError*wall_wall_kP, 100);
+        rightPower = 255 + maximum(wallError*wall_wall_kP, 100);
+        lastMode = L;
+        lastError = wallError;
+      }
+      rightEnc.write(leftEnc.read()); // sync up the encoders because it's not reading them
+    }
+    else if (rightWallDist < 100) {
+      // just right wall
+      int wallError = rightWallTarget - rightWallDist;
+      int d = 0;
+      if (lastMode == R) {
+        d = wallError - lastError;
+      }
+      leftPower = 255 - d*wall_wall_kD - wallError*wall_wall_kP;
+      rightPower = 255 + d*wall_wall_kD - wallError*wall_wall_kP;
+      //leftPower = 255 - maximum(wallError*wall_wall_kP, 100);
+      //rightPower = 255 + maximum(wallError*wall_wall_kP, 100);
+
+      lastMode = R;
+      lastError = wallError;
+      rightEnc.write(leftEnc.read()); // sync up the encoders because it's not reading them
+    }
+    else {
+      //no walls
+      if (lastMode != NONE) {
+        rightEnc.write(leftEnc.read()); // assume that the robot got straighened out by the walls
+      }
+      int leftPos = leftEnc.read();
+      int rightPos = rightEnc.read();
+      int twistError = leftPos - rightPos;
+      leftPower = 255 - twistError*twist_kP;
+      rightPower = 255 + twistError*twist_kP;
+      lastMode = NONE;
+    }
+
+    /*Serial.print("Left: "); Serial.print(leftPower);
+    Serial.print(" Right: "); Serial.println(rightPower);*/
+    leftMotor(leftPower);
+    rightMotor(rightPower); // only one of these will take effect because 255 is max power
+    int leftPos = leftEnc.read();
+    distanceError = dist - leftPos;
+    updateLocation(tempCoordinate, leftPos);
+    threads.delay(25);
+  }
+
+  // identify difference between the target node and the previous node if it's adjacent. otherwise just use encoders to get there.
+  
+  brake();
+  return;
+    
+}
+
 void goStraightUntilWall() {
   Serial.println("go until wall");
   const float twist_kP = 1;
@@ -230,11 +385,15 @@ void goStraightUntilWall() {
     }
     else {
       //no walls
+      if (lastMode != NONE) {
+        rightEnc.write(leftEnc.read()); // assume that the robot got straighened out by the walls
+      }
       int leftPos = leftEnc.read();
       int rightPos = rightEnc.read();
       int twistError = leftPos - rightPos;
       leftPower = 255 - twistError*twist_kP;
       rightPower = 255 + twistError*twist_kP;
+      lastMode = NONE;
     }
 
     /*Serial.print("Left: "); Serial.print(leftPower);
@@ -246,21 +405,56 @@ void goStraightUntilWall() {
   }
 
   // wallAhead() detected a wall
+  brake();
+  return;
+    
+}
+
+void brake() {
   leftMotor(-100);
   rightMotor(-100);
   threads.delay(50);
   leftMotor(0);
   rightMotor(0);
-  return;
-    
 }
 
-//void driveUntilNode(Node node/*not sure how to import the node*/) {
-  /*drive forward in a straight line until reaching the specified node. do so by looking at the coordinates and then confirming that the robot is 
-    centered at the destination node because relying purely on coordinates wouldn't work */
-
-
-//}
+void driveUntilNode(Node node) {
+  //drive forward in a straight line until reaching the specified node. do so by looking at the coordinates and then confirming that the robot is centered at the destination node because relying purely on coordinates wouldn't work
+  //are Node.x and Node.y public?
+  roundCoordinates();
+  int distance;
+  // confirm that you're at the same x or y coordinate of the destination node
+  if (xLocation == node.x) {
+    
+    distance = node.y - yLocation;
+    if (distance > 0) {
+      turnTo(SOUTH);
+    }
+    else if (distance < 0) {
+      turnTo(NORTH);
+      distance = abs(distance);
+    }
+    
+  }
+  else if (yLocation == node.y) {
+    distance = node.x - xLocation;
+    if (distance > 0) {
+      turnTo(EAST);
+    }
+    else if (distance < 0) {
+      turnTo(WEST);
+      distance = abs(distance);
+    }
+  }
+  else {
+    // then you screwed up
+    distance = 0;
+    Serial.println("invalid driveUntilNode call. destination not in line with robot");
+  }
+  distance = (int) (distance * MAZE_SQUARE_SIZE);
+  goStraight(distance); // simple solution; would be inaccurate
+  //goStraightToNode(distance, node); // go almost the full distance then look for walls for a more accurate destination
+}
 
 void roundCoordinates () {
   //round xLocation and yLocation to nearest integer
@@ -302,7 +496,7 @@ void makeTurn(int dist) {
     int pwr = maximum(error*kP + integral*kI + d*kD, TOP_SPEED);
     if (nearZero(error,leftTurn/20) && nearZero(d, 2500)) {// close to destination but the motor power isn't enough to move the robot
       Serial.print("Booost");
-      pwr*=1.3;
+      pwr*=2;
     }
     /*Serial.print("Error: "); Serial.print(error);
     Serial.print(" Power: "); Serial.print(pwr);
@@ -314,7 +508,7 @@ void makeTurn(int dist) {
     if (nearZero(error, leftTurn / 60) && nearZero(angularVelocity, 1000)){ // about 1.5 degree tolerance
       leftMotor(0);
       rightMotor(0);
-      facing = (((wasFacing + dist/rightTurn) % 4)+ 4) % 4; // why the extra +4 %4? 
+      facing = (((wasFacing + dist/rightTurn) % 4)+ 4) % 4; // why the extra +4 %4? if you were facing north and you turned left, you'd get ((-1 % 4) + 4) % 4 = 3. Without the last 2 operations, you'd get -1. There's probably a better way still.
       return;
     }
     threads.delay(25);
