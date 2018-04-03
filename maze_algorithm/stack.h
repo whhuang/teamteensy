@@ -10,6 +10,17 @@
 
 typedef struct Stack *Stack_T;
 
+struct StackNode
+{
+   const void *pvItem;
+   struct StackNode *psNextNode;
+};
+
+struct Stack
+{
+   struct StackNode *psFirstNode;
+};
+
 /*--------------------------------------------------------------------*/
 
 /* Return a new Stack_T object, or NULL if insufficient memory is

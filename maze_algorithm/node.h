@@ -1,3 +1,6 @@
+#ifndef NODE_INCLUDED
+#define NODE_INCLUDED
+
 struct Node {
   int x;
   int y;
@@ -32,3 +35,5 @@ void setXandY(struct Node* oNode, int xCoord, int yCoord);
 
 /* Sets whether this node has been visited */
 void setVisited(struct Node* oNode);
+
+#endif
