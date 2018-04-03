@@ -1,4 +1,13 @@
-struct Node;
+struct Node {
+  int x;
+  int y;
+  int visited;
+  struct Node* north;
+  struct Node* south;
+  struct Node* west;
+  struct Node* east;
+  int search_visit;
+};
 
 /* creates a new Node struct */
 struct Node* Node_new(void);
@@ -22,4 +31,4 @@ void setEast(struct Node* oNode, struct Node* oEastNode);
 void setXandY(struct Node* oNode, int xCoord, int yCoord);
 
 /* Sets whether this node has been visited */
-void setVisited(struct Node* oNode)
+void setVisited(struct Node* oNode);

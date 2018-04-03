@@ -1,28 +1,17 @@
 #include <stdlib.h>
 #include "node.h"
 
-struct Node {
-  int x;
-  int y;
-  int visited;
-  struct Node* north;
-  struct Node* south;
-  struct Node* west;
-  struct Node* east;
-  int search_visit;
-};
-
 struct Node* Node_new(void) {
   struct Node* node =
-              (struct Node*) malloc(sizeof(struct Node));
+    (struct Node*) malloc(sizeof(struct Node));
   node->x = -1;
   node->y = -1;
-  oNode->visited = 0;
+  node->visited = 0;
   node->north = NULL;
   node->south = NULL;
   node->west = NULL;
   node->east = NULL;
-  oNode->search_visit = 0;
+  node->search_visit = 0;
 
   return node;
 }
