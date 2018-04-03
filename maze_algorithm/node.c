@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include "node.h"
-#include "graph.h"
 
 struct Node {
   int x;
@@ -48,12 +47,9 @@ void setEast(struct Node* oNode, struct Node* oEastNode) {
   oNode->east = oEastNode;
 }
 
-void setXandY(struct Node* oNode, int xCoord, int yCoord, struct Graph* oGraph) {
+void setXandY(struct Node* oNode, int xCoord, int yCoord) {
   oNode->x = xCoord;
   oNode->y = yCoord;
-
-  // Push these valid nodes to a stack
-  Graph_addNode(oNode);
 }
 
 void setVisited(struct Node* oNode) {
