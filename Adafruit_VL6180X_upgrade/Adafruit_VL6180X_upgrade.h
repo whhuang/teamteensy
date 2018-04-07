@@ -24,7 +24,7 @@
 
 // the i2c address
 #define VL6180X_DEFAULT_I2C_ADDR 0x29
-
+#define I2C_SLAVE__DEVICE_ADDRESS 0x212
 #define VL6180X_REG_IDENTIFICATION_MODEL_ID    0x000
 #define VL6180X_REG_SYSTEM_INTERRUPT_CONFIG    0x014
 #define VL6180X_REG_SYSTEM_INTERRUPT_CLEAR     0x015
@@ -63,7 +63,7 @@
 // custom stuff
 #define WIRE_0 0
 #define WIRE_1 1
-#define WIRE_2 2
+//#define WIRE_2 2
 
 ///
 
@@ -74,6 +74,7 @@ class Adafruit_VL6180X {
   uint8_t readRange(void);
   float   readLux(uint8_t gain);
   uint8_t readRangeStatus(void);
+  void setAddress(uint8_t new_addr);
 
  private:
   i2c_t3 whichWire = Wire;

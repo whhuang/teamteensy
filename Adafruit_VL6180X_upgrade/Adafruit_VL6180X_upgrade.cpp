@@ -43,9 +43,9 @@ boolean Adafruit_VL6180X::begin(uint8_t whichOne) {
   else if (whichOne == WIRE_1) {
 	  whichWire = Wire1;
   }
-  else if (whichOne == WIRE_2) {
+  /*else if (whichOne == WIRE_2) {
 	  whichWire = Wire2;
-  }
+  }*/
   //whichWire = whichWire;
   //whichWire.setSDA(38);
   //whichWire.setSCL(37);
@@ -130,6 +130,12 @@ void Adafruit_VL6180X::loadSettings(void) {
                                 // Ready threshold event'
 }
 
+/****** Changing the addresss ******/
+void Adafruit_VL6180X::setAddress(uint8_t new_addr)
+{
+  write8(I2C_SLAVE__DEVICE_ADDRESS, new_addr & 0x7F);
+  _i2caddr = new_addr;
+}
 
 /**************************************************************************/
 /*! 
