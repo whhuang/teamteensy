@@ -1,13 +1,32 @@
 #include <StackArray.h>
 
 /*************************************************************
- *                CONSTANTS & GLOBAL VARIABLES               *
+ *             CONSTANTS, DEFS, & GLOBAL VARIABLES           *
  *************************************************************/
 
 /******** MAZE ********/
 
 int      size = 33;       // size of maze array
 boolean maze[33][33];     // change if size variable changes
+
+/******** NODE ********/
+
+struct node {
+  int  x;
+  int  y;
+  node N;
+  node S;
+  node E;
+  node W;
+
+  node (int coord1, int coord2, node *
+};
+
+/******** GRAPH ********/
+
+struct graph {
+  
+}
 
 /******** STACK ********/
 

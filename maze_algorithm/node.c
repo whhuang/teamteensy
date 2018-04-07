@@ -1,5 +1,20 @@
 #include <stdlib.h>
 #include "node.h"
+<<<<<<< Updated upstream
+=======
+#include <Arduino.h>
+
+struct Node {
+  int x;
+  int y;
+  int visited;
+  struct Node* north;
+  struct Node* south;
+  struct Node* west;
+  struct Node* east;
+  int search_visit;
+};
+>>>>>>> Stashed changes
 
 struct Node* Node_new(void) {
   struct Node* node =
@@ -36,10 +51,20 @@ void setEast(struct Node* oNode, struct Node* oEastNode) {
   oNode->east = oEastNode;
 }
 
+<<<<<<< Updated upstream
 void setXandY(struct Node* oNode, int xCoord, int yCoord) {
   oNode->x = xCoord;
   oNode->y = yCoord;
 }
+=======
+/*void setXandY(struct Node* oNode, int xCoord, int yCoord) {
+  oNode->x = xCoord;
+  oNode->y = yCoord;
+
+  // Push these valid nodes to a stack
+  //Graph_addNode(oNode);
+}*/
+>>>>>>> Stashed changes
 
 void setVisited(struct Node* oNode) {
   oNode->visited = 1;

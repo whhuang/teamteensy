@@ -25,7 +25,7 @@ struct StackNode
 
 /* A Stack is a structure that points to the first StackNode. */
 
-struct Stack
+struct Stack_T
 {
    /* The address of the first StackNode. */
    struct StackNode *psFirstNode;
@@ -33,11 +33,11 @@ struct Stack
 
 /*--------------------------------------------------------------------*/
 
-Stack_T Stack_new(void)
+struct Stack_T Stack_new(void)
 {
-   Stack_T oStack;
+   struct Stack_T oStack;
 
-   oStack = (Stack_T)malloc(sizeof(struct Stack));
+   oStack = (struct Stack_T)malloc(sizeof(struct Stack));
    if (oStack == NULL)
       return NULL;
 
@@ -47,7 +47,7 @@ Stack_T Stack_new(void)
 
 /*--------------------------------------------------------------------*/
 
-void Stack_free(Stack_T oStack)
+void Stack_free(struct Stack_T oStack)
 {
    struct StackNode *psCurrentNode;
    struct StackNode *psNextNode;
@@ -67,7 +67,7 @@ void Stack_free(Stack_T oStack)
 
 /*--------------------------------------------------------------------*/
 
-int Stack_push(Stack_T oStack, const void *pvItem)
+int Stack_push(struct Stack_T oStack, const void *pvItem)
 {
    struct StackNode *psNewNode;
 
@@ -85,7 +85,7 @@ int Stack_push(Stack_T oStack, const void *pvItem)
 
 /*--------------------------------------------------------------------*/
 
-void *Stack_pop(Stack_T oStack)
+void *Stack_pop(struct Stack_T oStack)
 {
    const void *pvItem;
    struct StackNode *psNextNode;
@@ -102,7 +102,7 @@ void *Stack_pop(Stack_T oStack)
 
 /*--------------------------------------------------------------------*/
 
-int Stack_isEmpty(Stack_T oStack)
+int Stack_isEmpty(struct Stack_T oStack)
 {
    assert(oStack != NULL);
 

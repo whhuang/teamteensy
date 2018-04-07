@@ -1,5 +1,6 @@
 #ifndef NODE_INCLUDED
 #define NODE_INCLUDED
+<<<<<<< Updated upstream
 
 struct Node {
   int x;
@@ -11,6 +12,11 @@ struct Node {
   struct Node* east;
   int search_visit;
 };
+=======
+#include <Arduino.h>
+
+struct Node;
+>>>>>>> Stashed changes
 
 /* creates a new Node struct */
 struct Node* Node_new(void);

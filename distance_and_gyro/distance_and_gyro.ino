@@ -5,6 +5,9 @@
 Adafruit_VL6180X vl = Adafruit_VL6180X();
 Adafruit_VL6180X v2 = Adafruit_VL6180X();
 Adafruit_VL6180X v3 = Adafruit_VL6180X();
+//int V2_RESET_PIN    = 9;
+const int v3Shutdown = 10;
+const int v2Shutdown = 9;
 
 LSM6 imu;
 int calibrate_offset;
@@ -20,22 +23,18 @@ void setup() {
     delay(1);
   }
   
+  pinMode(v3Shutdown, OUTPUT);
+  pinMode(v2Shutdown, OUTPUT);
+  digitalWrite(v3Shutdown, LOW);
+  digitalWrite(v2Shutdown, LOW);
+  delay(10);
   Serial.println("Adafruit VL6180x");
-  if (! v3.begin(WIRE_2)) {
-    Serial.println("Failed to find sensor");
-    while (1);
-  }
-  Serial.println("v3");
   if (! vl.begin(WIRE_0)) {
     Serial.println("Failed to find sensor");
     while (1);
   }
+  vl.setAddress(0b0111001);
   Serial.println("v1");
-  if (! v2.begin(WIRE_1)) {
-    Serial.println("Failed to find sensor");
-    while (1);
-  }
-  Serial.println("v2");
   if (!imu.init())
   {
     Serial.println("Failed to detect and initialize IMU!");
@@ -43,7 +42,28 @@ void setup() {
   }
   imu.enableDefault();
   Serial.println("IMU found");
+  
 
+  // changing one of distance sensor addresses
+  //pinMode(V2_RESET_PIN, OUTPUT);
+  //digitalWrite(V2_RESET_PIN, LOW);
+  digitalWrite(v3Shutdown, HIGH);
+  delay(10);
+  if (! v3.begin(WIRE_0)) {
+    Serial.println("Failed to find sensor");
+    while (1);
+  }
+  Serial.println("v3");
+  v3.setAddress(0b0111101);
+  delay(10);
+  //digitalWrite(V2_RESET_PIN, HIGH);
+  digitalWrite(v2Shutdown, HIGH);
+  if (! v2.begin(WIRE_0)) {
+    Serial.println("Failed to find sensor");
+    while (1);
+  }
+  Serial.println("v2");
+  
   
   
   
@@ -117,6 +137,7 @@ void loop() {
     unsigned long elapsed = currentTime - lastTime;
     direction += (reading)*elapsed;
     Serial.println(direction);
+    //Serial.println(reading);
   }
   
   // Some error occurred, print it out!
