@@ -1,5 +1,6 @@
 int wallLeft() {
-  return distanceToSensor(v3);
+  //return distanceToSensor(v3);
+  return v3Range;
 }
 
 int wallAhead() {
@@ -7,7 +8,8 @@ int wallAhead() {
 }
 
 int wallRight() {
-  return distanceToSensor(v2);
+  //return distanceToSensor(v2);
+  return v2Range;
 }
 
 

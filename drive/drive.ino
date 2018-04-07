@@ -2,7 +2,9 @@
 #include <Encoder.h>
 #include <i2c_t3.h>
 #include "Adafruit_VL6180X_upgrade.h"
+//#include "Adafruit_VL6180X.h"
 #include <LSM6_upgrade.h>
+//#include <LSM6.h>
 #include <math.h>
 #include <stdlib.h>
 //constants
@@ -15,7 +17,8 @@ const int EAST = 1;
 const int SOUTH = 2;
 const int WEST = 3;
 const int TURNING = 4;
-const double MAZE_SQUARE_SIZE = 5197.0;  //number of encoder ticks in a square
+//const double MAZE_SQUARE_SIZE = 5197.0;  //number of encoder ticks in a square
+const double MAZE_SQUARE_SIZE = 4600.0;  //number of encoder ticks in a square
 int leftTurn   = 10400000;
 int rightTurn = -10200000; //these might need minor tweaks
 int left180 = leftTurn * 2;
@@ -28,6 +31,8 @@ int gyro_calibrate = -380;
 
 // variable variables
 volatile int v1Range = 404; // This must be calculated in loop with the gyro to avoid SDA conflicts
+volatile int v2Range = 404;
+volatile int v3Range = 404;
 int relativeDirection = 0; // does this need to be volatile?
 int angularVelocity = 0;
 int dt = 20;
@@ -41,6 +46,8 @@ const int m1_2 = 20;
 const int m2_1 = 23;
 const int m2_2 = 22;
 const int ledPin = 13;
+const int v3Shutdown = 10;
+const int v2Shutdown = 9;
 Encoder leftEnc(17, 16);
 Encoder rightEnc(0, 1);
 
@@ -56,45 +63,260 @@ void setup() {
   Serial.begin(9600);
   pinMode(m1_1, OUTPUT);
   pinMode(m1_2, OUTPUT);
+  pinMode(m2_1, OUTPUT);
+  pinMode(m2_2, OUTPUT);
   pinMode(ledPin, OUTPUT);
   //threads.addThread(motorThread);
 
-  /*
+  
   // this absolutely MUST be commented out for it to work unless it's connected to USB
+  /*
   while (!Serial) {
     delay(1);
   }
   */
   
-  Serial.println("Adafruit VL6180x");
-  if (! v1.begin(WIRE_0)) {
-    Serial.println("Failed to find sensor");
-    while (1);
-  }
-  Serial.println("v1");
-  if (! v2.begin(WIRE_1)) {
-    Serial.println("Failed to find sensor");
-    while (1);
-  }
-  if (! v3.begin(WIRE_2)) {
-    Serial.println("Failed to find sensor");
-    while (1);
-  }
-  Serial.println("distance sensors working");
   
+  /**** old sensor initilizations
+  Serial.println("Adafruit VL6180x");
+  
+   if (! v1.begin(WIRE_0)) {
+    Serial.println("Failed to find sensor");
+    while (1);
+  }
+  
+  Serial.println("v1");
   if (!imu.init())
   {
     Serial.println("Failed to detect and initialize IMU!");
     while (1);
   }
   imu.enableDefault();
+  Serial.println("IMU found");
+  
+
+  // changing one of distance sensor addresses
+  pinMode(V2_RESET_PIN, OUTPUT);
+  digitalWrite(V2_RESET_PIN, LOW);
+  delay(10);
+  if (! v3.begin(WIRE_2)) {
+    Serial.println("Failed to find sensor");
+    while (1);
+  }
+  Serial.println("v3");
+  v3.setAddress(0b0111001);
+  delay(10);
+  digitalWrite(V2_RESET_PIN, HIGH);
+  
+  if (! v2.begin(WIRE_2)) {
+    Serial.println("Failed to find sensor");
+    while (1);
+  }
+  Serial.println("v2");
+  
+  
+  
+  
+  Serial.println("distance sensors working");*/
+  pinMode(v3Shutdown, OUTPUT);
+  pinMode(v2Shutdown, OUTPUT);
+  digitalWrite(v3Shutdown, LOW);
+  digitalWrite(v2Shutdown, LOW);
+  delay(10);
+  Serial.println("Starting to initialize sensors");
+  if (! v1.begin(WIRE_0)) {
+    Serial.println("Failed to find sensor");
+    while (1);
+  }
+  v1.setAddress(0b0111001);
+  Serial.println("v1");
+  if (!imu.init())
+  {
+    Serial.println("Failed to detect and initialize IMU!");
+    while (1);
+  }
+  imu.enableDefault();
+  Serial.println("IMU found");
+  
+
+  // changing one of distance sensor addresses
+  //pinMode(V2_RESET_PIN, OUTPUT);
+  //digitalWrite(V2_RESET_PIN, LOW);
+  digitalWrite(v3Shutdown, HIGH);
+  delay(10);
+  if (! v3.begin(WIRE_0)) {
+    Serial.println("Failed to find sensor");
+    while (1);
+  }
+  Serial.println("v3");
+  v3.setAddress(0b0111101);
+  delay(10);
+  //digitalWrite(V2_RESET_PIN, HIGH);
+  digitalWrite(v2Shutdown, HIGH);
+  if (! v2.begin(WIRE_0)) {
+    Serial.println("Failed to find sensor");
+    while (1);
+  }
+  Serial.println("v2");
   
   Serial.println("all sensors found");
+  
   threads.addThread(readIMUloop);
-
+  
 }
 
+int goStraightUntilCorridor() {
+  Serial.println("go straight until corridor");
+  int wallAheadCutoff = 80;
+  
+  const float twist_kP = 1;
+  const float wall_wall_kP = 10;
+  const float wall_wall_kD = 30;
+  const int MAX_ENCODER_DIFF = 100;
+  int tempCoordinate;
+  double previousTile;
+  if (facing == NORTH || facing == SOUTH) {
+    tempCoordinate = yLocation;
+  }
+  else if (facing == EAST || facing == WEST) {
+    tempCoordinate = xLocation;
+  }
+  previousTile = 0; // increment each time the robot goes another tile forward 
+  leftEnc.write(0);
+  rightEnc.write(0);
 
+  int lastMode = NONE;
+  int lastError = 0;
+  //while (wallAhead() > wallAheadCutoff) {
+  while(1) {  
+
+     
+    /* If there is a wall on the left and right, center the robot between them.
+     * If there is just a wall on the left, put the robot 50mm from that wall.
+     * If just on the right, 50mm from that wall.
+     * Else, use encoders to keep tracking straight.
+     */
+    int leftWallDist = wallLeft();
+    int rightWallDist = wallRight();
+    int frontWallDist = wallAhead();
+    int leftWallTarget = 50; //desired distance from each wall
+    int rightWallTarget = 50;
+    int leftPower = 0;
+    int rightPower = 0;
+    int leftEncReading = leftEnc.read();
+    int rightEncReading = rightEnc.read();
+
+    /*
+     * Check if left or right wall is missing at each tile
+     */
+    //first check if there's a wall ahead because then it needs to brake;
+    if (frontWallDist <= wallAheadCutoff) {
+      brake();
+      roundCoordinates(); // probably useful
+      return (leftWallDist > 100) * 100 + (rightWallDist > 100) * 10 + (frontWallDist <= wallAheadCutoff) * 1;
+    }
+    if (leftEncReading / MAZE_SQUARE_SIZE - previousTile >= 1) {
+      
+      int result = (leftWallDist > 100) * 100 + (rightWallDist > 100) * 10 + (frontWallDist <= wallAheadCutoff) * 1;
+      if (result > 0) return result;
+      previousTile += 1;
+    }
+    // else, robot is between tiles or (there are walls on each side && no wall ahead)
+    
+    if (leftWallDist < 100) {
+      if (rightWallDist < 100) {
+        //2 walls
+        int wallError = leftWallDist - rightWallDist;
+        int d = 0;
+        if (lastMode == BOTH) {
+          d = wallError - lastError;
+        }
+        int correction = d*wall_wall_kD + wallError*wall_wall_kP;
+        int encoder_difference = rightEncReading - leftEncReading;
+        if (encoder_difference > MAX_ENCODER_DIFF && correction > 0 ||
+          encoder_difference < MAX_ENCODER_DIFF && correction < 0 ) correction = 0; //encoders are too far apart, don't overcorrect. maybe use negative feedback here instead of zero. 
+        leftPower = 255 - correction;
+        rightPower = 255 + correction;
+        //leftPower = 255 - d*wall_wall_kD - wallError*wall_wall_kP;
+        //rightPower = 255 + d*wall_wall_kD + wallError*wall_wall_kP;these sorta worked
+        
+        
+        //leftPower = 255 - maximum(wallError*wall_wall_kP, 100);
+        //rightPower = 255 + maximum(wallError*wall_wall_kP, 100);
+        
+          
+        
+        lastMode = BOTH;
+        lastError = wallError;
+      }
+      else {
+        // just left wall
+        int wallError = leftWallDist - leftWallTarget;
+        int d = 0;
+        if (lastMode == L) {
+          //Serial.print("calculating d");
+          d = wallError - lastError;
+        }
+        //leftPower = 255 - maximum(d*wall_wall_kD, 50) - maximum(wallError*wall_wall_kP, 80);
+        //rightPower = 255 + maximum(d*wall_wall_kD, 50) + maximum(wallError*wall_wall_kP, 80);
+        int correction = d*wall_wall_kD + wallError*wall_wall_kP;
+        int encoder_difference = rightEncReading - leftEncReading;
+        if (encoder_difference > MAX_ENCODER_DIFF && correction > 0 ||
+          encoder_difference < MAX_ENCODER_DIFF && correction < 0 ) correction = 0; //encoders are too far apart, don't overcorrect. maybe use negative feedback here instead of zero. 
+        leftPower = 255 - correction;
+        rightPower = 255 + correction;
+        lastMode = L;
+        lastError = wallError;
+      }
+      //rightEnc.write(leftEnc.read()); // sync up the encoders because it's not reading them
+    }
+    else if (rightWallDist < 100) {
+      // just right wall
+      int wallError = rightWallTarget - rightWallDist;
+      int d = 0;
+      if (lastMode == R) {
+        d = wallError - lastError;
+      }
+      //leftPower = 255 - d*wall_wall_kD - wallError*wall_wall_kP;
+      //rightPower = 255 + d*wall_wall_kD - wallError*wall_wall_kP;
+
+      int correction = d*wall_wall_kD + wallError*wall_wall_kP;
+      int encoder_difference = rightEncReading - leftEncReading;
+      if (encoder_difference > MAX_ENCODER_DIFF && correction > 0 ||
+        encoder_difference < MAX_ENCODER_DIFF && correction < 0 ) correction = 0; //encoders are too far apart, don't overcorrect. maybe use negative feedback here instead of zero. 
+      leftPower = 255 - correction;
+      rightPower = 255 + correction;
+        
+      //leftPower = 255 - maximum(wallError*wall_wall_kP, 100);
+      //rightPower = 255 + maximum(wallError*wall_wall_kP, 100);
+
+      lastMode = R;
+      lastError = wallError;
+      //rightEnc.write(leftEnc.read()); // sync up the encoders because it's not reading them
+    }
+    else {
+      //no walls
+      if (lastMode != NONE) {
+        rightEnc.write(leftEnc.read()); // assume that the robot got straighened out by the walls
+      }
+      int leftPos = leftEnc.read();
+      int rightPos = rightEnc.read();
+      int twistError = leftPos - rightPos;
+      leftPower = 255 - twistError*twist_kP;
+      rightPower = 255 + twistError*twist_kP;
+      lastMode = NONE;
+    }
+
+    /*Serial.print("Left: "); Serial.print(leftPower);
+    Serial.print(" Right: "); Serial.print(rightPower);*/
+    
+    leftMotor(leftPower);
+    rightMotor(rightPower); // only one of these will take effect because 255 is max power
+    updateLocation(tempCoordinate, leftEnc.read());
+    threads.delay(25);
+  }
+  
+}
 
 void goStraight (int dist) {
   // make a temp x or y coordinate that doesn't change. Real coordinate = temp + leftEnc.read(); on every loop
@@ -126,7 +348,7 @@ void goStraight (int dist) {
     integral = maximum(integral, integralMax);
     int pwr = maximum(error*kP + integral*kI, TOP_SPEED);
     int twistCorrect = twist_kP*twistError;
-    Serial.print("error: ");
+    /*Serial.print("error: ");
     Serial.print(error);
     Serial.print("derivative: ");
     Serial.print(d);
@@ -135,7 +357,8 @@ void goStraight (int dist) {
     Serial.print("Left power: ");
     Serial.print(pwr - twistCorrect);
     Serial.print("Right power: ");
-    Serial.println(pwr+twistCorrect);
+    Serial.println(pwr+twistCorrect);*/
+    Serial.println(leftPos);
     leftMotor(pwr - twistCorrect);
     rightMotor(pwr + twistCorrect);
     
@@ -151,6 +374,7 @@ void goStraight (int dist) {
 
 
 //this is not done yet. use drive straight for now
+/*
 void goStraightToNode(int dist, Node node) { // I know it's bad to directly copy code from another function and then change it a little to make it work but I'm rushing here.
   // int dist is the number of encoder ticks, not the number of squares.
   Serial.println("go distance without stopping");
@@ -209,13 +433,13 @@ void goStraightToNode(int dist, Node node) { // I know it's bad to directly copy
         
       }
     }
-  }
-  while (didntReachNodeYet) {
+  }*//*
+  while (didntReachNodeYet) {*/
     /* If there is a wall on the left and right, center the robot between them.
      * If there is just a wall on the left, put the robot 50mm from that wall.
      * If just on the right, 50mm from that wall.
      * Else, use encoders to keep tracking straight.
-     */
+     *//*
     if (nodeIdentification == 0) {// no means of distinguishing the destination node from the previous square
       didntReachNodeYet = distanceError > 0;
     }
@@ -285,10 +509,10 @@ void goStraightToNode(int dist, Node node) { // I know it's bad to directly copy
       leftPower = 255 - twistError*twist_kP;
       rightPower = 255 + twistError*twist_kP;
       lastMode = NONE;
-    }
+    }*/
 
     /*Serial.print("Left: "); Serial.print(leftPower);
-    Serial.print(" Right: "); Serial.println(rightPower);*/
+    Serial.print(" Right: "); Serial.println(rightPower);*//*
     leftMotor(leftPower);
     rightMotor(rightPower); // only one of these will take effect because 255 is max power
     int leftPos = leftEnc.read();
@@ -302,7 +526,7 @@ void goStraightToNode(int dist, Node node) { // I know it's bad to directly copy
   brake();
   return;
     
-}
+}*/
 
 void goStraightUntilWall() {
   Serial.println("go until wall");
@@ -417,7 +641,7 @@ void brake() {
   leftMotor(0);
   rightMotor(0);
 }
-
+/*
 void driveUntilNode(Node node) {
   //drive forward in a straight line until reaching the specified node. do so by looking at the coordinates and then confirming that the robot is centered at the destination node because relying purely on coordinates wouldn't work
   //are Node.x and Node.y public?
@@ -454,7 +678,7 @@ void driveUntilNode(Node node) {
   distance = (int) (distance * MAZE_SQUARE_SIZE);
   goStraight(distance); // simple solution; would be inaccurate
   //goStraightToNode(distance, node); // go almost the full distance then look for walls for a more accurate destination
-}
+}*/
 
 void roundCoordinates () {
   //round xLocation and yLocation to nearest integer
@@ -603,11 +827,22 @@ void loop() {
   uint8_t status3 = v3.readRangeStatus();
   */
 
+  /*
   threads.delay(500);
   driveUntilWall();
   threads.delay(500);
   turn(rightTurn);
+  Serial.printf("(x, y) = (%f, %f) \n", xLocation, yLocation);
+  */
 
-
+  threads.delay(500);
+  //Serial.println(goStraightUntilCorridor());
+  leftMotor(100);
+  rightMotor(100);
+  //brake();
+  
+  //goStraight(MAZE_SQUARE_SIZE*2);
+  
+  //while(1);
 }
     
