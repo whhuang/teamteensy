@@ -19,8 +19,8 @@ const int WEST = 3;
 const int TURNING = 4;
 //const double MAZE_SQUARE_SIZE = 5197.0;  //number of encoder ticks in a square
 const double MAZE_SQUARE_SIZE = 4600.0;  //number of encoder ticks in a square
-int leftTurn   = 10400000;
-int rightTurn = -10200000; //these might need minor tweaks
+int leftTurn   = 10200000;//10400000;
+int rightTurn = -9700000; //-10000000 //these might need minor tweaks
 int left180 = leftTurn * 2;
 int right180 = rightTurn * 2;
 const int TOP_SPEED = 255;
@@ -57,7 +57,9 @@ Adafruit_VL6180X v2 = Adafruit_VL6180X();
 Adafruit_VL6180X v3 = Adafruit_VL6180X();
 LSM6 imu;
 
-
+const int LEFTB = 1;
+const int RIGHTB = 2;
+const int FRONTB = 4;
 
 void setup() {
   Serial.begin(9600);
@@ -167,7 +169,7 @@ void setup() {
 
 int goStraightUntilCorridor() {
   Serial.println("go straight until corridor");
-  int wallAheadCutoff = 80;
+  int wallAheadCutoff = 22;
   
   const float twist_kP = 1;
   const float wall_wall_kP = 10;
@@ -213,11 +215,11 @@ int goStraightUntilCorridor() {
     if (frontWallDist <= wallAheadCutoff) {
       brake();
       roundCoordinates(); // probably useful
-      return (leftWallDist > 100) * 100 + (rightWallDist > 100) * 10 + (frontWallDist <= wallAheadCutoff) * 1;
+      return (leftWallDist <= 100) * LEFTB + (rightWallDist <= 100) * RIGHTB + (frontWallDist <= wallAheadCutoff) * FRONTB;
     }
     if (leftEncReading / MAZE_SQUARE_SIZE - previousTile >= 1) {
       
-      int result = (leftWallDist > 100) * 100 + (rightWallDist > 100) * 10 + (frontWallDist <= wallAheadCutoff) * 1;
+      int result = (leftWallDist <= 100) * LEFTB + (rightWallDist <= 100) * RIGHTB + (frontWallDist <= wallAheadCutoff) * FRONTB;
       if (result > 0) return result;
       previousTile += 1;
     }
@@ -542,22 +544,24 @@ void goStraightUntilWall() {
   }
   leftEnc.write(0);
   rightEnc.write(0);
-  if (wallAhead() <= 90)
+  if (wallAhead() <= 55)
     return;
   int lastMode = NONE;
   int lastError = 0;
-  while (wallAhead() > 90) {
+  while (wallAhead() > 55) {
     /* If there is a wall on the left and right, center the robot between them.
      * If there is just a wall on the left, put the robot 50mm from that wall.
      * If just on the right, 50mm from that wall.
      * Else, use encoders to keep tracking straight.
      */
+    int leftPower = 0;
+    int rightPower = 0;
+    /*
     int leftWallDist = wallLeft();
     int rightWallDist = wallRight();
     int leftWallTarget = 50; //desired distance from each wall
     int rightWallTarget = 50;
-    int leftPower = 0;
-    int rightPower = 0;
+
     
     if (leftWallDist < 100) {
       if (rightWallDist < 100) {
@@ -598,6 +602,7 @@ void goStraightUntilWall() {
       if (lastMode == R) {
         d = wallError - lastError;
       }
+      
       leftPower = 255 - d*wall_wall_kD - wallError*wall_wall_kP;
       rightPower = 255 + d*wall_wall_kD - wallError*wall_wall_kP;
       //leftPower = 255 - maximum(wallError*wall_wall_kP, 100);
@@ -608,17 +613,18 @@ void goStraightUntilWall() {
       rightEnc.write(leftEnc.read()); // sync up the encoders because it's not reading them
     }
     else {
+    */
       //no walls
-      if (lastMode != NONE) {
-        rightEnc.write(leftEnc.read()); // assume that the robot got straighened out by the walls
-      }
+//      if (lastMode != NONE) {
+//        rightEnc.write(leftEnc.read()); // assume that the robot got straighened out by the walls
+//      }
       int leftPos = leftEnc.read();
       int rightPos = rightEnc.read();
       int twistError = leftPos - rightPos;
       leftPower = 255 - twistError*twist_kP;
       rightPower = 255 + twistError*twist_kP;
-      lastMode = NONE;
-    }
+////      lastMode = NONE;
+//    
 
     /*Serial.print("Left: "); Serial.print(leftPower);
     Serial.print(" Right: "); Serial.println(rightPower);*/
@@ -718,9 +724,9 @@ void makeTurn(int dist) {
     integral = maximum(integral, integralMax);
     
     int pwr = maximum(error*kP + integral*kI + d*kD, TOP_SPEED);
-    if (nearZero(error,leftTurn/20) && nearZero(d, 2500)) {// close to destination but the motor power isn't enough to move the robot
+    if (nearZero(error,leftTurn/20) && nearZero(d, 3500)) {// close to destination but the motor power isn't enough to move the robot
       Serial.print("Booost");
-      pwr*=2;
+      pwr*=1.5;
     }
     /*Serial.print("Error: "); Serial.print(error);
     Serial.print(" Power: "); Serial.print(pwr);
@@ -729,7 +735,7 @@ void makeTurn(int dist) {
     leftMotor(-pwr);
     lastError = error;
     
-    if (nearZero(error, leftTurn / 60) && nearZero(angularVelocity, 1000)){ // about 1.5 degree tolerance
+    if (nearZero(error, leftTurn / 50) && nearZero(angularVelocity, 1000)){ // about 1.5 degree tolerance would be leftTurn / 60
       leftMotor(0);
       rightMotor(0);
       facing = (((wasFacing + dist/rightTurn) % 4)+ 4) % 4; // why the extra +4 %4? if you were facing north and you turned left, you'd get ((-1 % 4) + 4) % 4 = 3. Without the last 2 operations, you'd get -1. There's probably a better way still.
@@ -836,13 +842,51 @@ void loop() {
   */
 
   threads.delay(500);
-  //Serial.println(goStraightUntilCorridor());
-  leftMotor(100);
-  rightMotor(100);
-  //brake();
+//  int randNumber;
+//  // front wall is present and left wall is open
+//  int ret = goStraightUntilCorridor();
+//  if (FRONTB & ret && LEFTB & ret == 0) {
+//     brake();
+//     turn(leftTurn);
+//  } else if (FRONTB & ret && RIGHTB & ret == 0) {
+//     brake();
+//     turn(rightTurn);
+//     
+//  // otherwise if front wall or left wall not present
+//  // favor going straight   
+//  } else if (RIGHTB & ret == 0 && FRONTB & ret == 0) {
+//    randNumber = random(10);
+//    if (randNumber > 3) {goStraightUntilCorridor();}
+//    else {
+//      brake();
+//      turn(leftTurn);
+//    }
+//  } else if (LEFTB & ret == 0) {
+//    randNumber = random(10);
+//    if (randNumber > 3) {goStraightUntilCorridor();}
+//    else {
+//      brake();
+//      turn(rightTurn);
+//    }
+//  }
+
+goStraightUntilWall();
+threads.delay(100);
+if (wallRight() > 100) {
+  turn(rightTurn);
+
+} else if (wallLeft() > 100) {
+  turn(leftTurn);  
+
+} else {
+  turn(left180);
+  }
+    //brake();
   
   //goStraight(MAZE_SQUARE_SIZE*2);
   
   //while(1);
+
+
 }
     
